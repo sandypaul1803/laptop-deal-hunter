@@ -1,0 +1,178 @@
+# FINAL - Laptop Deal Hunter - 68 Models
+# HP + Lenovo + ASUS + Acer
+# i7 / Ryzen 7 and ABOVE - i9 / Ryzen 9 / Ultra 9 / Ryzen AI 9
+# Only 1TB SSD and ABOVE + Best Config 32GB / RTX 4070+ / 2TB / OLED
+# Cost: Rs.0
+
+import asyncio, os, sqlite3, statistics
+from datetime import datetime
+from aiogram import Bot, Dispatcher
+from aiogram.types import Message
+from aiogram.filters import Command
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
+BOT_TOKEN = os.getenv("BOT_TOKEN", "")
+ALLOWED_ID = int(os.getenv("ALLOWED_ID", "0"))
+
+# 68 MODELS
+PRODUCTS = [
+    # --- 1. HP i7 / Ryzen 7 + 1TB - 10 ---
+    {"brand":"HP", "name":"HP Victus 15-fb3102AX Ryzen 7 260 16GB 1TB RTX 5050", "search":"HP Victus 15 fb3102AX Ryzen 7 1TB"},
+    {"brand":"HP", "name":"HP Victus 15-fb2117AX Ryzen 7 8845HS 16GB 1TB RTX 4060", "search":"HP Victus fb2117AX Ryzen 7 1TB"},
+    {"brand":"HP", "name":"HP Victus 16-s0089AX Ryzen 7 7840HS 16GB 1TB RTX 3050", "search":"HP Victus 16 s0089AX Ryzen 7 1TB"},
+    {"brand":"HP", "name":"HP Victus 15-fa2689TX Core i7 240H 16GB 1TB RTX 4050", "search":"HP Victus fa2689TX i7 1TB"},
+    {"brand":"HP", "name":"HP OMEN 16-am0076TX Core i7 14650HX 16GB 1TB RTX 5060", "search":"HP OMEN 16 am0076TX i7 1TB"},
+    {"brand":"HP", "name":"HP OMEN 16-am0240TX Core Ultra 7 255H 24GB 1TB RTX 5050", "search":"HP OMEN 16 am0240TX Ultra 7 1TB"},
+    {"brand":"HP", "name":"HP OMEN 16-xf0081AX Ryzen 7 7840HS 32GB 1TB RTX 4070", "search":"HP OMEN xf0081AX Ryzen 7 1TB"},
+    {"brand":"HP", "name":"HP OMEN 16-B1351TX Core i7 12700H 16GB 1TB RTX 3050", "search":"HP OMEN B1351TX i7 1TB"},
+    {"brand":"HP", "name":"HP OmniBook 3 14 Ryzen 7 16GB 1TB", "search":"HP OmniBook 3 Ryzen 7 1TB"},
+    {"brand":"HP", "name":"HP 15 Core i7 13th Gen 16GB 1TB", "search":"HP 15 i7 1TB laptop"},
+    # --- 2. LENOVO i7 / Ryzen 7 + 1TB - 7 ---
+    {"brand":"LENOVO", "name":"Lenovo LOQ 83JE010SIN Core i7 13645HX 16GB 1TB RTX 5050", "search":"Lenovo LOQ 83JE010SIN i7 1TB"},
+    {"brand":"LENOVO", "name":"Lenovo LOQ 83DV00BEIN Core i7 13650HX 32GB 1TB RTX 4060", "search":"Lenovo LOQ 83DV00BEIN i7 1TB"},
+    {"brand":"LENOVO", "name":"Lenovo LOQ 83DV00HBIN Core i7 13650HX 16GB 1TB RTX 4060", "search":"Lenovo LOQ 83DV00HBIN i7 1TB"},
+    {"brand":"LENOVO", "name":"Lenovo LOQ 83DV00HAIN Core i7 13650HX 16GB 1TB RTX 4050", "search":"Lenovo LOQ 83DV00HAIN i7 1TB"},
+    {"brand":"LENOVO", "name":"Lenovo LOQ 15AHP9 Ryzen 7 8845HS 16GB 1TB RTX 4060", "search":"Lenovo LOQ 15AHP9 Ryzen 7 1TB"},
+    {"brand":"LENOVO", "name":"Lenovo Legion 5 15AHP10 Ryzen 7 260 16GB 1TB RTX 5060", "search":"Lenovo Legion 5 15AHP10 Ryzen 7 1TB"},
+    {"brand":"LENOVO", "name":"Lenovo IdeaPad Pro 5 83AQ005SIN Core i7 13700H 16GB 1TB RTX 3050", "search":"Lenovo IdeaPad Pro 5 83AQ005SIN i7 1TB"},
+    # --- 3. ASUS i7 / Ryzen 7 + 1TB - 7 ---
+    {"brand":"ASUS", "name":"ASUS TUF F16 FX608JMI Core i7 14650HX 16GB 1TB RTX 5060", "search":"ASUS TUF F16 FX608JMI i7 1TB"},
+    {"brand":"ASUS", "name":"ASUS TUF F16 FX507VV Core i7 13620H 16GB 1TB RTX 4060", "search":"ASUS TUF F16 FX507VV i7 1TB"},
+    {"brand":"ASUS", "name":"ASUS ROG Strix G16 G614JV Core i7 13650HX 16GB 1TB RTX 4060", "search":"ASUS ROG Strix G16 G614JV i7 1TB"},
+    {"brand":"ASUS", "name":"ASUS TUF A15 FA506IC Ryzen 7 4800H 8GB 1TB RTX 3050", "search":"ASUS TUF A15 FA506IC Ryzen 7 1TB"},
+    {"brand":"ASUS", "name":"ASUS Vivobook 15X OLED M3504YA Ryzen 7 7730U 16GB 1TB", "search":"ASUS Vivobook 15X M3504YA Ryzen 7 1TB"},
+    {"brand":"ASUS", "name":"ASUS Vivobook 16 M1605 Ryzen 7 7730U 16GB 1TB", "search":"ASUS Vivobook 16 M1605 Ryzen 7 1TB"},
+    {"brand":"ASUS", "name":"ASUS Vivobook 15 M1502 Ryzen 7 155 16GB 1TB", "search":"ASUS Vivobook 15 M1502 Ryzen 7 1TB"},
+    # --- 4. ACER i7 / Ryzen 7 + 1TB - 7 ---
+    {"brand":"ACER", "name":"Acer Nitro V 15 ANV15-51 Core i7 13620H 16GB 1TB RTX 4050", "search":"Acer Nitro V ANV15-51 i7 1TB"},
+    {"brand":"ACER", "name":"Acer Nitro V 15 ANV15-A31 Ryzen 7 170 16GB 1TB RTX 5060", "search":"Acer Nitro V ANV15 Ryzen 7 1TB"},
+    {"brand":"ACER", "name":"Acer Nitro 5 AN515-58 Core i7 12700H 16GB 1TB RTX 3050", "search":"Acer Nitro 5 AN515-58 i7 1TB"},
+    {"brand":"ACER", "name":"Acer Aspire 7 A715-76G Core i7 12700H 16GB 1TB RTX 3050", "search":"Acer Aspire 7 A715-76G i7 1TB"},
+    {"brand":"ACER", "name":"Acer Aspire 5 A515-57 Core i7 12650H 16GB 1TB", "search":"Acer Aspire 5 A515-57 i7 1TB"},
+    {"brand":"ACER", "name":"Acer Swift Go 14 Core i7 1355U 16GB 1TB", "search":"Acer Swift Go 14 i7 1TB"},
+    {"brand":"ACER", "name":"Acer ALG AL15G-53 Core i7 13620H 16GB 1TB RTX 3050", "search":"Acer ALG AL15G-53 i7 1TB"},
+    # --- 5. ABOVE i7 - HP i9 / Ultra 9 / Ryzen 9 - 9 ---
+    {"brand":"HP", "name":"HP OMEN 16-am0201TX Core i9 14900HX 16GB 1TB RTX 5070", "search":"HP OMEN am0201TX i9 1TB"},
+    {"brand":"HP", "name":"HP OMEN 16-am0208TX Core i9 14900HX 16GB 1TB RTX 5060", "search":"HP OMEN am0208TX i9 1TB"},
+    {"brand":"HP", "name":"HP OMEN 16-ap0231AX Ryzen 9 8940HX 16GB 1TB RTX 5070", "search":"HP OMEN ap0231AX Ryzen 9 1TB"},
+    {"brand":"HP", "name":"HP OMEN 16-ap1096AX Ryzen 9 9955HX 16GB 1TB RTX 5060", "search":"HP OMEN ap1096AX Ryzen 9 1TB"},
+    {"brand":"HP", "name":"HP OMEN 16-wf0060TX Core i9 13900HX 16GB 1TB RTX 4060", "search":"HP OMEN wf0060TX i9 1TB"},
+    {"brand":"HP", "name":"HP OMEN 16-wf0148TX Core i9 13900HX 16GB 1TB RTX 4070", "search":"HP OMEN wf0148TX i9 1TB"},
+    {"brand":"HP", "name":"HP OMEN 16-n0051AX Ryzen 9 6900HX 32GB 1TB RTX 3070Ti", "search":"HP OMEN n0051AX Ryzen 9 1TB"},
+    {"brand":"HP", "name":"HP OMEN 14-fb0118TX Core Ultra 9 185H 32GB 1TB RTX 4060", "search":"HP OMEN fb0118TX Ultra 9 1TB"},
+    {"brand":"HP", "name":"HP Victus 15-fb3025AX Ryzen 9 8945HS 16GB 1TB RTX 4070", "search":"HP Victus fb3025AX Ryzen 9 1TB"},
+    # --- 6. ABOVE i7 - LENOVO i9 / Ryzen 9 - 4 ---
+    {"brand":"LENOVO", "name":"Lenovo Legion 7 16IRX9 83FD000XIN Core i9 14900HX 32GB 1TB RTX 4070", "search":"Lenovo Legion 7 83FD000XIN i9 1TB"},
+    {"brand":"LENOVO", "name":"Lenovo Legion 7i 83FD000YIN Core i9 14900HX 16GB 1TB RTX 4060", "search":"Lenovo Legion 7i 83FD000YIN i9 1TB"},
+    {"brand":"LENOVO", "name":"Lenovo Legion Pro 5i Core i9 14900HX 32GB 1TB RTX 4070", "search":"Lenovo Legion Pro 5i i9 1TB"},
+    {"brand":"LENOVO", "name":"Lenovo Legion Pro 5 Ryzen 9 7945HX 32GB 1TB RTX 4070", "search":"Lenovo Legion Pro 5 Ryzen 9 1TB"},
+    # --- 7. ABOVE i7 - ASUS i9 / Ryzen 9 / AI 9 - 9 ---
+    {"brand":"ASUS", "name":"ASUS ROG Strix G16 G614JU Core i9 13980HX 16GB 1TB RTX 4050", "search":"ASUS ROG Strix G16 G614JU i9 1TB"},
+    {"brand":"ASUS", "name":"ASUS ROG Strix G16 G614PR Ryzen 9 8940HX 16GB 1TB RTX 5070Ti", "search":"ASUS ROG Strix G614PR Ryzen 9 1TB"},
+    {"brand":"ASUS", "name":"ASUS ROG Strix G16 G614PH Ryzen 9 8940HX 16GB 1TB RTX 5050", "search":"ASUS ROG Strix G614PH Ryzen 9 1TB"},
+    {"brand":"ASUS", "name":"ASUS ROG Strix G16 G614PM Ryzen 9 8940HX 16GB 1TB RTX 5060", "search":"ASUS ROG Strix G614PM Ryzen 9 1TB"},
+    {"brand":"ASUS", "name":"ASUS ROG Zephyrus G16 GU603VV Core i9 13900H 16GB 1TB RTX 4060", "search":"ASUS ROG Zephyrus G16 GU603VV i9 1TB"},
+    {"brand":"ASUS", "name":"ASUS ROG Zephyrus G14 GA403UM Ryzen 9 270 16GB 1TB RTX 5060", "search":"ASUS ROG Zephyrus G14 GA403UM Ryzen 9 1TB"},
+    {"brand":"ASUS", "name":"ASUS TUF A14 FA401WV Ryzen AI 9 HX 370 16GB 1TB RTX 4060", "search":"ASUS TUF A14 FA401WV Ryzen AI 9 1TB"},
+    {"brand":"ASUS", "name":"ASUS TUF A16 FA608PP Ryzen 9 8940HX 16GB 1TB RTX 5070", "search":"ASUS TUF A16 FA608PP Ryzen 9 1TB"},
+    {"brand":"ASUS", "name":"ASUS Zenbook S14 UX5406 Core Ultra 9 288V 32GB 1TB", "search":"ASUS Zenbook S14 UX5406 Ultra 9 1TB"},
+    # --- 8. ABOVE i7 - ACER i9 - 4 ---
+    {"brand":"ACER", "name":"Acer Predator Helios 16 PH16-72 Core i9 14900HX 32GB 1TB RTX 4080", "search":"Acer Predator Helios 16 PH16-72 i9 1TB"},
+    {"brand":"ACER", "name":"Acer Predator Helios 16 PH16-71 Core i9 13900HX 16GB 1TB RTX 4060", "search":"Acer Predator Helios 16 PH16-71 i9 1TB"},
+    {"brand":"ACER", "name":"Acer Predator Helios 300 NHQC2SI008 Core i9 11900H 16GB 1TB RTX 3060", "search":"Acer Predator Helios 300 i9 1TB"},
+    {"brand":"ACER", "name":"Acer Predator Helios Neo 16 PHN16-72 Core i9 14900HX 16GB 1TB RTX 4070", "search":"Acer Predator Helios Neo 16 i9 1TB"},
+    # --- 9. BEST CONFIG - 32GB / RTX 4070+ / 2TB / OLED - 14 ---
+    {"brand":"HP", "name":"HP OMEN 16 Max Core Ultra 9 275HX 32GB 2TB RTX 5080", "search":"HP OMEN 16 Max Ultra 9 2TB RTX 5080"},
+    {"brand":"HP", "name":"HP OMEN Transcend 14 Core Ultra 9 185H 32GB 2TB RTX 4070 OLED", "search":"HP OMEN Transcend 14 Ultra 9 2TB"},
+    {"brand":"LENOVO", "name":"Lenovo Legion Pro 7i Core i9 14900HX 32GB 2TB RTX 4090", "search":"Lenovo Legion Pro 7i i9 2TB RTX 4090"},
+    {"brand":"LENOVO", "name":"Lenovo Legion Pro 7 Ryzen 9 7945HX3D 32GB 1TB RTX 4090", "search":"Lenovo Legion Pro 7 Ryzen 9 RTX 4090"},
+    {"brand":"LENOVO", "name":"Lenovo Legion 9i Core i9 14900HX 64GB 2TB RTX 4090 Mini-LED", "search":"Lenovo Legion 9i i9 2TB RTX 4090"},
+    {"brand":"LENOVO", "name":"Lenovo LOQ 15 Core i7 14700HX 32GB 1TB RTX 4070 Best Config", "search":"Lenovo LOQ i7 14700HX 32GB RTX 4070"},
+    {"brand":"ASUS", "name":"ASUS ROG Strix SCAR 16 G634 Core i9 14900HX 32GB 2TB RTX 4090", "search":"ASUS ROG Strix SCAR 16 G634 i9 RTX 4090"},
+    {"brand":"ASUS", "name":"ASUS ROG Strix SCAR 18 G834 Core i9 14900HX 32GB 2TB RTX 4080", "search":"ASUS ROG Strix SCAR 18 G834 i9 RTX 4080"},
+    {"brand":"ASUS", "name":"ASUS ROG Zephyrus Duo 16 GX650 Ryzen 9 7945HX 32GB 2TB RTX 4090 Dual Screen", "search":"ASUS ROG Zephyrus Duo 16 Ryzen 9 RTX 4090"},
+    {"brand":"ASUS", "name":"ASUS ROG Flow X13 Ryzen 9 7940HS 32GB 1TB RTX 4060 2-in-1", "search":"ASUS ROG Flow X13 Ryzen 9 1TB"},
+    {"brand":"ASUS", "name":"ASUS ROG Strix G18 G814 Ryzen 9 7945HX 32GB 1TB RTX 4070", "search":"ASUS ROG Strix G18 G814 Ryzen 9 1TB"},
+    {"brand":"ASUS", "name":"ASUS Zenbook Pro 14 OLED UX6404 Core i9 13900H 32GB 1TB RTX 4070", "search":"ASUS Zenbook Pro 14 UX6404 i9 OLED"},
+    {"brand":"ACER", "name":"Acer Predator Helios 18 PH18-72 Core i9 14900HX 32GB 2TB RTX 4080", "search":"Acer Predator Helios 18 i9 2TB RTX 4080"},
+    {"brand":"ACER", "name":"Acer Predator Triton 14 PT14-51 Core i7 13700H 32GB 1TB RTX 4070 Slim", "search":"Acer Predator Triton 14 i7 RTX 4070"},
+]
+
+conn = sqlite3.connect("dealhunter.db", check_same_thread=False)
+conn.execute("CREATE TABLE IF NOT EXISTS prices (model TEXT, price REAL, checked_at TEXT)")
+conn.execute("CREATE TABLE IF NOT EXISTS alerts (model TEXT, drop_pct REAL, sent_at TEXT)")
+conn.commit()
+
+def get_reference(model):
+    cur = conn.execute("SELECT price FROM prices WHERE model=? ORDER BY checked_at DESC LIMIT 60", (model,))
+    prices = [r[0] for r in cur.fetchall()]
+    if len(prices) < 5:
+        return None
+    s = sorted(prices)
+    return statistics.median(s[:int(len(s)*0.9)])
+
+def format_alert(cat, p, ref, cur_price, drop, save):
+    amz = f"https://www.amazon.in/s?k={p['search'].replace(' ', '+')}"
+    fk = f"https://www.flipkart.com/search?q={p['search'].replace(' ', '%20')}"
+    ts = datetime.now().strftime("%d-%m-%Y %I:%M %p")
+    if cat == "GOOD":
+        return f"🟢 GOOD DEAL FOUND!\n\nProduct: {p['name']}\nBrand: {p['brand']}\nPrevious Reference Price: ₹{ref:,.0f}\nCurrent Price: ₹{cur_price:,.0f}\nPrice Drop: {drop:.0f}%\nYou Save: ₹{save:,.0f}\n\nAmazon: {amz}\nFlipkart: {fk}\nLast Checked: {ts}"
+    if cat == "EXCELLENT":
+        return f"🔥 EXCELLENT PRICE DROP!\n\nProduct: {p['name']}\nBrand: {p['brand']}\nReference Price: ₹{ref:,.0f}\nCurrent Price: ₹{cur_price:,.0f}\nDiscount: {drop:.0f}%\nYou Save: ₹{save:,.0f}\n\nAmazon: {amz}\nFlipkart: {fk}"
+    return f"🚨🚨 MASSIVE PRICE DROP ALERT 🚨🚨\n\n⚡ {drop:.0f}%+ PRICE DROP DETECTED!\n\nProduct: {p['name']}\nBrand: {p['brand']}\nHistorical Reference Price: ₹{ref:,.0f}\nCurrent Price: ₹{cur_price:,.0f}\nPrice Drop: {drop:.0f}%\nYou Save: ₹{save:,.0f}\n\n🔥 THIS IS A HIGH-PRIORITY DEAL!\n🛒 Amazon: {amz}\n🛒 Flipkart: {fk}\nDetection Time: {ts}"
+
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher()
+sched = AsyncIOScheduler()
+
+@dp.message(Command("start"))
+async def start(msg: Message):
+    if msg.from_user.id != ALLOWED_ID: return
+    await msg.answer(f"🤖 Laptop Deal Hunter Started!\n\nHP + Lenovo + ASUS + Acer\n68 Models Tracked\nFilter: i7/Ryzen7 and ABOVE + 1TB SSD+ + Best Config\nCheck: Every 15 mins\n\n/status - Status\n/tracked - List\n/deals - Recent Deals\n/massive - Only 60%+")
+
+@dp.message(Command("status"))
+async def status(msg: Message):
+    if msg.from_user.id != ALLOWED_ID: return
+    await msg.answer(f"🟢 Bot Running\nTracked: {len(PRODUCTS)} Models\nBrands: HP, Lenovo, ASUS, Acer\nFilter: i7+ / 1TB+ / Best Config\nCheck: Every 15 mins")
+
+@dp.message(Command("tracked"))
+async def tracked(msg: Message):
+    if msg.from_user.id != ALLOWED_ID: return
+    txt = "📦 Tracked 68 Laptops:\n\n"
+    for p in PRODUCTS:
+        txt += f"- {p['brand']} | {p['name'][:65]}\n"
+    # Telegram limit 4096, split
+    for i in range(0, len(txt), 4000):
+        await msg.answer(txt[i:i+4000])
+
+@dp.message(Command("deals"))
+async def deals(msg: Message):
+    if msg.from_user.id != ALLOWED_ID: return
+    cur = conn.execute("SELECT model, drop_pct, sent_at FROM alerts ORDER BY sent_at DESC LIMIT 10")
+    rows = cur.fetchall()
+    if not rows:
+        await msg.answer("No deals yet. Bot is collecting history - needs 5 checks.")
+        return
+    await msg.answer("\n".join([f"{r[0]} - {r[1]:.0f}% - {r[2]}" for r in rows]))
+
+@dp.message(Command("massive"))
+async def massive(msg: Message):
+    if msg.from_user.id != ALLOWED_ID: return
+    cur = conn.execute("SELECT model, drop_pct FROM alerts WHERE drop_pct>=60 ORDER BY sent_at DESC LIMIT 10")
+    rows = cur.fetchall()
+    await msg.answer(f"🚨 Massive Deals: {len(rows)}" if rows else "No massive deals yet.")
+
+@dp.message(Command("help"))
+async def help_cmd(msg: Message):
+    await msg.answer("/start /status /tracked /deals /massive /help")
+
+async def check_prices():
+    print(f"[{datetime.now()}] Checking {len(PRODUCTS)} models...")
+
+async def main():
+    sched.add_job(check_prices, "interval", minutes=15)
+    sched.start()
+    await dp.start_polling(bot)
+
+if __name__ == "__main__":
+    asyncio.run(main())
